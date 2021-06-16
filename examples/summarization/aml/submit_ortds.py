@@ -12,8 +12,8 @@ args = parser.parse_args()
 # put your AML workspace JSON and add tenant id in this directory!
 with open('./config.json','r') as f:
     aml_config = json.load(f)
-tenant_id = aml_config['tenant_id']
-ws = Workspace.from_config('./config.json', auth=InteractiveLoginAuthentication(tenant_id))
+# tenant_id = aml_config['tenant_id']
+ws = Workspace.from_config('./config.json')
 ws_details = ws.get_details()
 print('Name:\t\t{}\nLocation:\t{}'
       .format(ws_details['name'],
@@ -100,7 +100,7 @@ config = ScriptRunConfig(source_directory=codepath,
                          environment=pytorch_env,
                          distributed_job_config=mpi)
 
-experiment_name = 'josleep_pymarlin_summarization_bart_ortds'
+experiment_name = 'internfelix_pymarlin_summarization_bart_ortds'
 experiment = Experiment(ws, name=experiment_name)
 
 run = experiment.submit(config)
