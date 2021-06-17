@@ -114,7 +114,18 @@ class Trainer(AbstractTrainer):
         """
         Initializes stats, writers, trainer_backend and other helper functions
         """
-        self.module = module
+        # self.module = module
+
+        # |-------------- Begins changes --------------|
+        if args.ort: 
+            from onnxruntime.training.ortmodule import ORTModule 
+            logger.info("Converting to ORTModule ....") 
+            model = ORTModule(self.model) 
+            self.model_wrapped = model 
+        # |-------------- End changes -----------------|
+
+        print("[------- TRAINER IS BEING IMPORTED SUCCESSFULLY\n -------]")
+        
         self.args = args
         assert not (self.args.amp_backend_native and self.args.amp_backend_apex), "Can only choose one AMP backend (native or apex), not both"
         self.trainer_backend = self._init_backend(trainer_backend)
