@@ -40,6 +40,7 @@ class TrainerArguments:
     clip_grads: bool = True
     max_grad_norm: float = 1.0
     reset_optimizers_schedulers: bool = False
+    ort = False
 
     # checkpointer args
     checkpointer_args: DefaultCheckpointerArguments = DefaultCheckpointerArguments()
@@ -125,7 +126,7 @@ class Trainer(AbstractTrainer):
         # |-------------- End changes -----------------|
 
         print("[------- TRAINER IS BEING IMPORTED SUCCESSFULLY\n -------]")
-        
+
         self.args = args
         assert not (self.args.amp_backend_native and self.args.amp_backend_apex), "Can only choose one AMP backend (native or apex), not both"
         self.trainer_backend = self._init_backend(trainer_backend)
