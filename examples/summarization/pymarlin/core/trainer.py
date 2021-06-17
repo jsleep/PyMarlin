@@ -40,7 +40,7 @@ class TrainerArguments:
     clip_grads: bool = True
     max_grad_norm: float = 1.0
     reset_optimizers_schedulers: bool = False
-    # ort = False
+    ort = True
 
     # checkpointer args
     checkpointer_args: DefaultCheckpointerArguments = DefaultCheckpointerArguments()
