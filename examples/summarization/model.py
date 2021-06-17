@@ -36,7 +36,7 @@ class SummarizationBartModule_ds_ort(SummarizationBartModule):
             max_length_encoder=128,
             max_length_decoder=128,
             max_lr=2e-5,
-            ort=False,
+            # ort=False,
             deepspeed=False,
             deepspeed_config='',
             deepspeed_transformer_kernel=False,
@@ -49,14 +49,14 @@ class SummarizationBartModule_ds_ort(SummarizationBartModule):
         #setting this here to avoid issues after wrapping
         self._pad_token_id = self.model.config.pad_token_id
 
-        if ort:
-            logger.info(f"Employing ORT, wrapping model with ORTModule")
-            self.model = ORTModule(self.model)
+        # if ort:
+        #     logger.info(f"Employing ORT, wrapping model with ORTModule")
+        #     self.model = ORTModule(self.model)
         if deepspeed:
             logger.info(f"Employing Deepspeed, wrapping model with Deepspeed")
             self.model, _ = initialize_deepspeed(self.model, deepspeed_config, deepspeed_transformer_kernel)
 
-        self.ort = ort
+        # self.ort = ort
         self.deepspeed = deepspeed
         self.deepspeed_resume_from_checkpoint = deepspeed_resume_from_checkpoint
         self.deepspeed_ckpt_tag = deepspeed_ckpt_tag
@@ -90,7 +90,8 @@ class SummarizationBartModule_ds_ort(SummarizationBartModule):
 
     def val_step(self, global_step: int, batch, device):
         batch = batch.to(device)
-        module = get_core_model(self.model, deepspeed_flag=self.deepspeed, ort_flag=self.ort)
+        # module = get_core_model(self.model, deepspeed_flag=self.deepspeed, ort_flag=self.ort)
+        module = get_core_model(self.model, deepspeed_flag=self.deepspeed)
 
         summaries = module.generate(
             input_ids=batch.input_ids, attention_mask=batch.attention_mask
