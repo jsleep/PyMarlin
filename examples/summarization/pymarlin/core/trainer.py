@@ -120,7 +120,7 @@ class Trainer(AbstractTrainer):
         # |-------------- Begins changes --------------|
         if args.ort: 
             from onnxruntime.training.ortmodule import ORTModule 
-            logger.info("Converting to ORTModule ....") 
+            self.logger.info("Converting to ORTModule ....") 
             model = ORTModule(self.model) 
             self.model_wrapped = model 
         # |-------------- End changes -----------------|
