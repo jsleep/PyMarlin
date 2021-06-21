@@ -115,22 +115,24 @@ class Trainer(AbstractTrainer):
         """
         Initializes stats, writers, trainer_backend and other helper functions
         """
-        # self.module = module
+        self.module = module      
+        self.args = args
+        self.logger = getlogger(__name__, self.args.log_level)
+        
 
-        # |-------------- Begins changes --------------|
-        if args.ort: 
-            from onnxruntime.training.ortmodule import ORTModule 
-            self.logger.info("Converting to ORTModule ....") 
-            model = ORTModule(self.model) 
-            self.model_wrapped = model 
-        # |-------------- End changes -----------------|
+        # # |-------------- Begins changes --------------|
+        # if args.ort: 
+        #     from onnxruntime.training.ortmodule import ORTModule 
+        #     self.logger.info("Converting to ORTModule ....") 
+        #     model = ORTModule(self.model) 
+        #     self.model_wrapped = model 
+        # # |-------------- End changes -----------------|
 
         print("[------- TRAINER IS BEING IMPORTED SUCCESSFULLY\n -------]")
 
-        self.args = args
+        
         assert not (self.args.amp_backend_native and self.args.amp_backend_apex), "Can only choose one AMP backend (native or apex), not both"
         self.trainer_backend = self._init_backend(trainer_backend)
-        self.logger = getlogger(__name__, self.args.log_level)
         self._fetch_ranks()
         self._log_hparams()
 
@@ -152,6 +154,17 @@ class Trainer(AbstractTrainer):
         self.trainer_backend.init(self._get_trainer_backend_args())
         self.trainer_backend.update_state(self.checkpointed_states.trainer_backend_state)
 
+        # |-------------- Begins changes --------------|
+        if self.args.ort: 
+            print("[--- ENTERING CHANGES ---]")
+            from onnxruntime.training.ortmodule import ORTModule 
+            self.logger.info("Converting to ORTModule ....") 
+            print(ORTModule.__dict__)
+            self.module = ORTModule(self.module) 
+            # self.model_wrapped = self.module 
+            print("[--- EXITING CHANGES ---]")
+        # |-------------- End changes -----------------|
+
     def train(self):
         """ Train and validate the model"""
         for epoch in trange(
@@ -159,7 +172,10 @@ class Trainer(AbstractTrainer):
         ):
             self.logger.info(f"Training epoch {epoch}")
             self.stats.update("epoch", epoch, frequent=True)
-            self.module.on_begin_train_epoch(self.global_steps_finished, epoch)
+            #-----------------------------------------------------# 
+            if not self.args.ort:
+                self.module.on_begin_train_epoch(self.global_steps_finished, epoch) 
+            #-----------------------------------------------------# 
             self.module.train()  # nn.module.Train
             all_outputs = self.train_epoch()
 

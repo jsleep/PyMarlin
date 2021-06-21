@@ -61,7 +61,7 @@ def get_args(outputSuffix="deepspeed_ort_amp_nopadding_v100_8"):
         '--chkp.model_state_save_dir', get_output_dataset(ds, f'jsleep/bart/cnndm_sum/' + outputSuffix + "/ckpts/model_state_save_dir", "model_state_save_dir"),
         '--wrt.tb_log_dir', get_output_dataset(ds, f'jsleep/bart/cnndm_sum/' + outputSuffix + "/tblogs", "tb_log_dir"),
         # '--chkp.load_dir', get_input_dataset(ds, f'jsleep/bart/ckpts/cnndm_sum/deepspeed_test_0/save_dir', "load_dir"),
-        '--module.ort',
+        # '--module.ort',
         '--module.deepspeed',
         '--module.deepspeed_transformer_kernel',
         '--module.deepspeed_config', 'deepspeed_methods/deepspeedConfig.json',

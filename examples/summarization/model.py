@@ -36,7 +36,7 @@ class SummarizationBartModule_ds_ort(SummarizationBartModule):
             max_length_encoder=128,
             max_length_decoder=128,
             max_lr=2e-5,
-            # ort=False,
+            ort=False,
             deepspeed=False,
             deepspeed_config='',
             deepspeed_transformer_kernel=False,
