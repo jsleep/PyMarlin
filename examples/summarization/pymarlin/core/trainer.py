@@ -41,6 +41,7 @@ class TrainerArguments:
     max_grad_norm: float = 1.0
     reset_optimizers_schedulers: bool = False
     ort = True
+    # module = get_core_model(self.model, deepspeed_flag=self.deepspeed, ort_flag=self.ort)
 
     # checkpointer args
     checkpointer_args: DefaultCheckpointerArguments = DefaultCheckpointerArguments()
@@ -158,9 +159,12 @@ class Trainer(AbstractTrainer):
         if self.args.ort: 
             print("[--- ENTERING CHANGES ---]")
             from onnxruntime.training.ortmodule import ORTModule 
+
+            assert(hasattr(self, 'model') and isinstance(self.model, torch.nn.module), "expected self.model property of type torch.nn.module")
+            
             self.logger.info("Converting to ORTModule ....") 
             print(ORTModule.__dict__)
-            self.module = ORTModule(self.module) 
+            self.module = ORTModule(self.model) 
             # self.model_wrapped = self.module 
             print("[--- EXITING CHANGES ---]")
         # |-------------- End changes -----------------|
@@ -172,10 +176,7 @@ class Trainer(AbstractTrainer):
         ):
             self.logger.info(f"Training epoch {epoch}")
             self.stats.update("epoch", epoch, frequent=True)
-            #-----------------------------------------------------# 
-            if not self.args.ort:
-                self.module.on_begin_train_epoch(self.global_steps_finished, epoch) 
-            #-----------------------------------------------------# 
+            self.module.on_begin_train_epoch(self.global_steps_finished, epoch) 
             self.module.train()  # nn.module.Train
             all_outputs = self.train_epoch()
 
