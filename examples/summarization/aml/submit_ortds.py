@@ -62,9 +62,9 @@ def get_args(outputSuffix="deepspeed_ort_amp_nopadding_v100_8"):
         '--wrt.tb_log_dir', get_output_dataset(ds, f'jsleep/bart/cnndm_sum/' + outputSuffix + "/tblogs", "tb_log_dir"),
         # '--chkp.load_dir', get_input_dataset(ds, f'jsleep/bart/ckpts/cnndm_sum/deepspeed_test_0/save_dir', "load_dir"),
         # '--module.ort',
-        '--module.deepspeed',
-        '--module.deepspeed_transformer_kernel',
-        '--module.deepspeed_config', 'deepspeed_methods/deepspeedConfig.json',
+        # '--module.deepspeed',
+        # '--module.deepspeed_transformer_kernel',
+        # '--module.deepspeed_config', 'deepspeed_methods/deepspeedConfig.json',
     ]
     return all_params_default
 
@@ -77,11 +77,11 @@ pytorch_env.docker.enabled = True
 
 if args.image_exists:
     # this is the image built in the Dockerfile local to the file. re-using because it takes > 1.5hrs to build, greater than aml default timeout
-    pytorch_env.docker.base_image = "bart:cuda11.1.cudnn8.ds.ort.pymarlin0.2.3"
+    pytorch_env.docker.base_image = "felix_amltests:v1"
     pytorch_env.python.user_managed_dependencies = True
-    pytorch_env.docker.base_image_registry.address = 'elrsubstrate.azurecr.io'
-    pytorch_env.docker.base_image_registry.username = 'elrsubstrate'
-    pytorch_env.docker.base_image_registry.password = kv.get_secret('elrsubstrate-acr-password')
+    pytorch_env.docker.base_image_registry.address = 'internfelixtest.azurecr.io'
+    pytorch_env.docker.base_image_registry.username = 'internfelixtest'
+    pytorch_env.docker.base_image_registry.password = 'g4jBM5gVkBLXc8cIh=uGp7ng0SfTvhvh'
     pytorch_env.python.interpreter_path = '/opt/miniconda/bin/python'
 else:
     with open("Dockerfile", "r") as f:
