@@ -158,13 +158,13 @@ class Trainer(AbstractTrainer):
         # |-------------- Begins changes --------------|
         if self.args.ort: 
             print("[--- ENTERING CHANGES ---]")
-            from onnxruntime.training.ortmodule import ORTModule 
+            from torch_ort import ORTModule 
 
             assert(hasattr(self, 'model') and isinstance(self.model, torch.nn.module), "expected self.model property of type torch.nn.module")
             
             self.logger.info("Converting to ORTModule ....") 
             print(ORTModule.__dict__)
-            self.module = ORTModule(self.model) 
+            self.module = ORTModule(self.module) # DS Module, no on_train_epoch()
             # self.model_wrapped = self.module 
             print("[--- EXITING CHANGES ---]")
         # |-------------- End changes -----------------|
@@ -176,6 +176,7 @@ class Trainer(AbstractTrainer):
         ):
             self.logger.info(f"Training epoch {epoch}")
             self.stats.update("epoch", epoch, frequent=True)
+            # self.module.on_begin_train_epoch = self.module._module_metadata.original_module.on_begin_train_epoch()
             self.module.on_begin_train_epoch(self.global_steps_finished, epoch) 
             self.module.train()  # nn.module.Train
             all_outputs = self.train_epoch()
