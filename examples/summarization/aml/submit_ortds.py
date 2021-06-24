@@ -53,7 +53,7 @@ def get_args(outputSuffix="deepspeed_ort_amp_nopadding_v100_8"):
         '--config_path', 'config-prod.yaml',
         '--trainer.train_batch_size', 32,
         '--trainer.gpu_batch_size_limit', 32,
-        '--trainer.val_batch_size', 64,
+        '--trainer.val_batch_size', 32,
         '--trainer.epochs', 3,
         '--trainer.backend', "ddp-amp-apex",
         '--trainer.disable_tqdm', "true", # ugly logging in AML
