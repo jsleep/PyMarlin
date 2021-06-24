@@ -249,7 +249,8 @@ class SingleProcess(TrainerBackend):
         loss = outputs[0] / self.args.gradient_accumulation
         # backward. This will keep on accumulating gradients
         loss.backward()
-        callback.on_end_backward(self.global_step_completed, loss)
+        callback._module_metadata.original_module.on_end_backward(self.global_step_completed, loss) 
+        # Referencing metadata from original module to avoid integration issues.
         return outputs
 
     def process_global_step(self, global_step_collector, callback):
@@ -271,7 +272,8 @@ class SingleProcess(TrainerBackend):
         self.global_step_completed += 1
         self.global_step_this_epoch += 1
 
-        callback.on_end_train_step(self.global_step_completed, *global_step_outputs)
+        callback._module_metadata.original_module.on_end_train_step(self.global_step_completed, *global_step_outputs)
+        # Referencing metadata from original module to avoid integration issues.
         self.stats.log_stats(self.global_step_completed)
 
     def _clip_gradients(self):
@@ -398,7 +400,8 @@ class SingleProcessAmp(SingleProcess):
         loss = outputs[0] / self.args.gradient_accumulation
         # backward. This will keep on accumulating gradients
         self._backward(loss)
-        callback.on_end_backward(self.global_step_completed, loss)
+        callback._module_metadata.original_module.on_end_backward(self.global_step_completed, loss)
+        # Referencing metadata from original module to avoid integration issues.
         return outputs
 
     def _forward(self, batch, stage, global_step):
