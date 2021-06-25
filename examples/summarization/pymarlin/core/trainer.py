@@ -40,8 +40,7 @@ class TrainerArguments:
     clip_grads: bool = True
     max_grad_norm: float = 1.0
     reset_optimizers_schedulers: bool = False
-    ort = True
-    # module = get_core_model(self.model, deepspeed_flag=self.deepspeed, ort_flag=self.ort)
+    ort: bool = False
 
     # checkpointer args
     checkpointer_args: DefaultCheckpointerArguments = DefaultCheckpointerArguments()
@@ -120,18 +119,6 @@ class Trainer(AbstractTrainer):
         self.args = args
         self.logger = getlogger(__name__, self.args.log_level)
         
-
-        # # |-------------- Begins changes --------------|
-        # if args.ort: 
-        #     from onnxruntime.training.ortmodule import ORTModule 
-        #     self.logger.info("Converting to ORTModule ....") 
-        #     model = ORTModule(self.model) 
-        #     self.model_wrapped = model 
-        # # |-------------- End changes -----------------|
-
-        print("[------- TRAINER IS BEING IMPORTED SUCCESSFULLY\n -------]")
-
-        
         assert not (self.args.amp_backend_native and self.args.amp_backend_apex), "Can only choose one AMP backend (native or apex), not both"
         self.trainer_backend = self._init_backend(trainer_backend)
         self._fetch_ranks()
@@ -164,8 +151,18 @@ class Trainer(AbstractTrainer):
             
             self.logger.info("Converting to ORTModule ....") 
             print(ORTModule.__dict__)
-            self.module = ORTModule(self.module) # DS Module, no on_train_epoch()
-            # self.model_wrapped = self.module 
+            self.module = ORTModule(self.module)
+
+            self.module.on_begin_train_epoch = self.module._module_metadata.original_module.on_begin_train_epoch
+            self.module.on_end_train_epoch = self.module._module_metadata.original_module.on_end_train_epoch
+            self.module.on_end_train = self.module._module_metadata.original_module.on_end_train
+            self.module.get_val_dataloaders = self.module._module_metadata.original_module.get_val_dataloaders
+            self.module.get_train_dataloader = self.module._module_metadata.original_module.get_train_dataloader
+            self.module.get_state = self.module._module_metadata.original_module.get_state
+            self.module.get_optimizers_schedulers = self.module._module_metadata.original_module.get_optimizers_schedulers
+            self.module.on_end_backward = self.module._module_metadata.original_module.on_end_backward
+            self.module.on_end_train_step = self.module._module_metadata.original_module.on_end_train_step
+            self.module.on_end_val_epoch = self.module._module_metadata.original_module.on_end_val_epoch
             print("[--- EXITING CHANGES ---]")
         # |-------------- End changes -----------------|
 
@@ -176,17 +173,17 @@ class Trainer(AbstractTrainer):
         ):
             self.logger.info(f"Training epoch {epoch}")
             self.stats.update("epoch", epoch, frequent=True)
-            self.module.on_begin_train_epoch = self.module._module_metadata.original_module.on_begin_train_epoch(self.global_steps_finished, epoch)
-            # Referencing metadata from original module to avoid integration issues.
-            # self.module.on_begin_train_epoch(self.global_steps_finished, epoch) 
+
+            self.module.on_begin_train_epoch(self.global_steps_finished, epoch) 
+
             self.module.train()  # nn.module.Train
             all_outputs = self.train_epoch()
 
             self.logger.info("Validating")
             self.validate()
 
-            self.module._module_metadata.original_module.on_end_train_epoch(self.global_steps_finished, *all_outputs)
-            # Referencing metadata from original module to avoid integration issues.
+            self.module.on_end_train_epoch(self.global_steps_finished, *all_outputs)
+
             self.stats.log_long_stats(self.global_steps_finished)
             self.last_epoch = epoch
             self.save_checkpoint()
@@ -195,23 +192,26 @@ class Trainer(AbstractTrainer):
         self.save_checkpoint(force=True)
         self.save_model_checkpoint()
 
-        self.module._module_metadata.original_module.on_end_train(self.global_steps_finished)
+        self.module.on_end_train(self.global_steps_finished)
+
         self.stats.log_long_stats(self.global_steps_finished)
         self.logger.info("Finished training .. ")
 
     def train_epoch(self):
         all_outputs = []
-        dataloader = self.module._module_metadata.original_module.get_train_dataloader(
+        dataloader = self.module.get_train_dataloader(
             batch_size=self.train_step_batch_size, sampler=self.train_sampler
-        ) # Referencing metadata from original module to avoid integration issues.
+        )
+
         all_outputs = self.trainer_backend.train_dl(dataloader, self.module)
         return all_outputs
 
     def validate(self):
         """Run evaluation over multiple validation dataloaders"""
-        dataloaders = self.module._module_metadata.original_module.get_val_dataloaders(
+        dataloaders = self.module.get_val_dataloaders(
             batch_size=self.val_step_batch_size, sampler=self.val_sampler
-        ) # Referencing metadata from original module to avoid integration issues.
+        )
+
         self.module.eval()
         all_outputs = None
         dataloaders = (
@@ -219,7 +219,7 @@ class Trainer(AbstractTrainer):
         )
         for key, dataloader in dataloaders.items():
             all_outputs = self.trainer_backend.validate_dl(dataloader)
-            self.module._module_metadata.original_module.on_end_val_epoch(
+            self.module.on_end_val_epoch(
                 self.global_steps_finished, *all_outputs, key=key
             )
         self.stats.log_long_stats(self.global_steps_finished)
@@ -276,8 +276,7 @@ class Trainer(AbstractTrainer):
         """
         if self.is_main_process:  # only main process should checkpoint
             checkpoint_state = Checkpoint(
-                module_interface_state=self.module._module_metadata.original_module.get_state(),
-                # Referencing metadata from original module to avoid integration issues.
+                module_interface_state= self.module.get_state(),
                 trainer_state=self.get_state(),
                 trainer_backend_state=self.trainer_backend.get_state()
             )
@@ -292,7 +291,7 @@ class Trainer(AbstractTrainer):
         to the checkpointer's save_model() method.
         """
         if self.is_main_process:
-            self.checkpointer.save_model(self.module._module_metadata.original_module.get_state(), self.last_epoch)
+            self.checkpointer.save_model(self.module.get_state(), self.last_epoch)
 
     def load_checkpoints(self) -> Checkpoint:
         """
@@ -335,8 +334,10 @@ class Trainer(AbstractTrainer):
                 self.logger.info("Optimizers and schedulers reset, not loaded from checkpoint")
                 num_epochs_to_run = self.args.epochs - self.last_epoch - 1
                 if num_epochs_to_run > 0:
-                    self.optimizers, self.schedulers = self.module._module_metadata.original_module.get_optimizers_schedulers(
-                        # Referencing metadata from original module to avoid integration issues.
+                    self.optimizers, self.schedulers = self.module.get_optimizers_schedulers(
+                        self.estimated_global_steps_per_epoch,
+                        num_epochs_to_run
+                    ) if self.args.ort else self.module.get_optimizers_schedulers(
                         self.estimated_global_steps_per_epoch,
                         num_epochs_to_run
                     )

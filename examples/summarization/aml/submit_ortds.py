@@ -55,6 +55,7 @@ def get_args(outputSuffix="deepspeed_ort_amp_nopadding_v100_8"):
         '--trainer.gpu_batch_size_limit', 32,
         '--trainer.val_batch_size', 32,
         '--trainer.epochs', 3,
+        '--trainer.ort', True,
         '--trainer.backend', "ddp-amp-apex",
         '--trainer.disable_tqdm', "true", # ugly logging in AML
         '--chkp.save_dir', get_output_dataset(ds, f'jsleep/bart/cnndm_sum/' + outputSuffix + "/ckpts/save_dir", "chkp_save_dir"),
