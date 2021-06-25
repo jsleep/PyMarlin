@@ -66,7 +66,6 @@ class TrainerBackendArguments:
     amp_backend_native: bool = False
     amp_backend_apex: bool = False
     amp_level_apex: str = 'O1'
-    # ort = TrainerArguments.ort
 
 
 class TrainerBackend(ABC):
