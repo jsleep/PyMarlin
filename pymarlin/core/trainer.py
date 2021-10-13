@@ -22,6 +22,7 @@ import torch
 from torch.utils.data.sampler import SequentialSampler
 
 from pymarlin.core import trainer_backend as trn
+from pymarlin.core.trainer_backend_factory import build_trainer_backend
 from pymarlin.core import module_interface
 from pymarlin.utils import fabrics
 from pymarlin.utils import distributed
@@ -143,25 +144,6 @@ class Trainer(AbstractTrainer):
         self.trainer_backend.init(self._get_trainer_backend_args())
         self.trainer_backend.update_state(self.checkpointed_states.trainer_backend_state)
 
-        if self.args.ort: 
-            from torch_ort import ORTModule 
-
-            assert(hasattr(self, 'model') and isinstance(self.model, torch.nn.module), "expected self.model property of type torch.nn.module")
-            
-            self.logger.info("Converting to ORTModule ....") 
-            self.module = ORTModule(self.module)
-
-            self.module.on_begin_train_epoch = self.module._module_metadata.original_module.on_begin_train_epoch
-            self.module.on_end_train_epoch = self.module._module_metadata.original_module.on_end_train_epoch
-            self.module.on_end_train = self.module._module_metadata.original_module.on_end_train
-            self.module.get_val_dataloaders = self.module._module_metadata.original_module.get_val_dataloaders
-            self.module.get_train_dataloader = self.module._module_metadata.original_module.get_train_dataloader
-            self.module.get_state = self.module._module_metadata.original_module.get_state
-            self.module.get_optimizers_schedulers = self.module._module_metadata.original_module.get_optimizers_schedulers
-            self.module.on_end_backward = self.module._module_metadata.original_module.on_end_backward
-            self.module.on_end_train_step = self.module._module_metadata.original_module.on_end_train_step
-            self.module.on_end_val_epoch = self.module._module_metadata.original_module.on_end_val_epoch
-
 
     def train(self):
         """ Train and validate the model"""    
@@ -267,7 +249,7 @@ class Trainer(AbstractTrainer):
 
     def _init_backend(self, backend):
         if backend is None:
-            backend = trn.build_trainer_backend(self.args.backend)
+            backend = build_trainer_backend(self.args.backend)
         return backend
 
     def save_checkpoint(self, force=False) -> None:
